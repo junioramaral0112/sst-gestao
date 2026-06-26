@@ -1,0 +1,165 @@
+/* ══════════════════ SST GESTÃO — IDENTIDADE MACROMAQ ══════════════════ */
+:root {
+  --primary: #FFB81C;
+  --primary-hover: #E5A600;
+  --dark: #111111;
+  --dark-light: #1a1a1a;
+  --bg: #F4F5F7;
+  --white: #FFFFFF;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --green: #16a34a;
+  --red: #dc2626;
+  --yellow: #FFB81C;
+}
+
+body {
+  font-family: system-ui, -apple-system, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.hidden { display: none !important; }
+
+/* ═══ HEADER ═══ */
+header, .topbar {
+  background: var(--dark) !important;
+  color: var(--white);
+}
+
+header a, header button, .topbar a, .topbar button {
+  color: #cbd5e1;
+  transition: color 0.15s;
+}
+header a:hover, header button:hover,
+.topbar a:hover, .topbar button:hover {
+  color: var(--primary) !important;
+}
+
+/* ═══ NAV TABS ═══ */
+nav a {
+  color: #94a3b8;
+  transition: all 0.15s;
+}
+nav a:hover, nav a.active, nav a.bg-blue-800 {
+  background: var(--primary) !important;
+  color: var(--dark) !important;
+}
+
+/* ═══ BUTTONS ═══ */
+.btn-primary, .bg-blue-700, button.bg-blue-700, [class*="bg-blue-700"] {
+  background: var(--dark) !important;
+  color: var(--white) !important;
+}
+.btn-primary:hover, .bg-blue-700:hover, button.bg-blue-700:hover {
+  background: var(--primary) !important;
+  color: var(--dark) !important;
+  font-weight: 700;
+}
+
+/* Botão outline */
+.btn-outline, button.border {
+  background: var(--white);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-outline:hover, button.border:hover {
+  border-color: var(--primary);
+}
+
+/* ═══ TABLES ═══ */
+table thead tr, table thead th {
+  background: var(--dark) !important;
+  color: var(--white) !important;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ═══ BADGES ═══ */
+.badge-green, .bg-green-100 {
+  background: #dcfce7 !important;
+  color: #16a34a !important;
+}
+.badge-red, .bg-red-100 {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+}
+.badge-yellow, .bg-yellow-100 {
+  background: #fef9e7 !important;
+  color: #111111 !important;
+  border: 1px solid var(--primary);
+}
+.badge-gray, .bg-gray-100 {
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+}
+
+/* badge sólido (ENVIADO) */
+.bg-red-500 {
+  background: var(--dark) !important;
+  color: var(--white) !important;
+}
+
+/* ═══ CARDS ═══ */
+.nr-card, .empresa-card, .welcome-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: all 0.15s;
+}
+.nr-card:hover, .empresa-card:hover, .welcome-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(255, 184, 28, 0.15);
+}
+
+/* ═══ FORM INPUTS ═══ */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(255, 184, 28, 0.15) !important;
+}
+
+/* ═══ MODAL ═══ */
+.modal, .modal-overlay > div > div:first-child {
+  background: var(--white);
+  border-radius: 12px;
+}
+.modal h3 { color: var(--dark); }
+#modal-save {
+  background: var(--dark) !important;
+  color: var(--white) !important;
+}
+#modal-save:hover {
+  background: var(--primary) !important;
+  color: var(--dark) !important;
+}
+
+/* ═══ FOOTER ═══ */
+.app-footer {
+  text-align: center;
+  padding: 10px;
+  font-family: Arial, sans-serif;
+  background-color: var(--dark);
+  color: var(--white);
+  border-top: 2px solid var(--primary);
+  font-size: 12px;
+  margin-top: auto;
+}
+.app-footer strong { color: var(--primary); }
+
+/* ═══ LOGIN ═══ */
+.login-footer {
+  text-align: center;
+  margin-top: 24px;
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+/* ═══ RESPONSIVE ═══ */
+@media (max-width: 768px) {
+  header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  nav { flex-wrap: wrap; }
+}

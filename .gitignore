@@ -1,0 +1,19 @@
+# Dependências
+node_modules/
+
+# Banco de dados (contém dados reais em produção)
+database.db
+database.db-shm
+database.db-wal
+
+# Uploads de produção
+uploads/
+
+# Logs
+logs/
+
+# Ambiente (contém segredos)
+.env
+
+# PM2
+.pm2/
