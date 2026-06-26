@@ -187,6 +187,15 @@ app.put('/api/empresas/:id', auth, (req, res) => {
   res.json({ ok: true });
 });
 
+app.post('/api/empresas', auth, (req, res) => {
+  const e = req.body;
+  const r = db.prepare(`INSERT INTO empresas (razao_social,nome_fantasia,cnpj,inscricao_municipal,inscricao_estadual,endereco,celular,email,contato,tipo) VALUES (?,?,?,?,?,?,?,?,?,?)`)
+    .run(e.razao_social||'', e.nome_fantasia||'', e.cnpj||'', e.inscricao_municipal||'', e.inscricao_estadual||'', e.endereco||'', e.celular||'', e.email||'', e.contato||'', e.tipo||'');
+  // Vincula a empresa ao usuário autenticado
+  db.prepare('INSERT OR IGNORE INTO usuario_empresas (usuario_id,empresa_id) VALUES (?,?)').run(req.user.id, r.lastInsertRowid);
+  res.status(201).json({ id: r.lastInsertRowid });
+});
+
 app.get('/api/empresas/:id/localidades', auth, (req, res) => {
   res.json(db.prepare('SELECT * FROM localidades WHERE empresa_id = ?').all(req.params.id));
 });
