@@ -17,3 +17,6 @@ logs/
 
 # PM2
 .pm2/
+
+# Evitar pastas duplicadas aninhadas
+sst-gestao/

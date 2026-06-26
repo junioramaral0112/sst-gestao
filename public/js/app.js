@@ -1,5 +1,5 @@
 // ══════════════════ SST GESTÃO — SPA ROUTER ══════════════════
-const API = '';
+const API = 'https://sst-gestao-1.onrender.com';
 let token = '', usuario = null, empresaAtiva = null;
 
 function setAuth(t, u) { token = t; usuario = u; localStorage.setItem('sst_auth', JSON.stringify({ token, usuario })); }
@@ -104,7 +104,7 @@ function q(id) { return document.querySelector(id)?.value || ''; }
 /** Download autenticado — fetch + blob + download forçado */
 async function downloadAuth(url, filename) {
   try {
-    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+    const res = await fetch(API + url, { headers: { 'Authorization': `Bearer ${token}` } });
     if (!res.ok) throw new Error('Download falhou');
     const blob = await res.blob();
     const objUrl = URL.createObjectURL(blob);
