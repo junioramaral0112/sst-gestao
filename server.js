@@ -97,6 +97,33 @@ db.exec(`
   );
 `);
 
+// ══════════════════ AUTO-SEED (produção) ══════════════════
+// Cria o usuário admin padrão se a tabela estiver vazia
+// Garante que o Render sempre tenha um login funcional
+const usuarioCount = db.prepare('SELECT COUNT(*) as c FROM usuarios').get().c;
+if (usuarioCount === 0) {
+  const hash = bcrypt.hashSync('123456', 10);
+  db.prepare('INSERT INTO usuarios (id,nome,email,senha_hash) VALUES (?,?,?,?)').run(1, 'Administrador', 'admin@empresa.com', hash);
+  console.log('🌱 Auto-seed: usuário admin criado (admin@empresa.com / 123456)');
+}
+
+// Cria as 16 NRs (normas regulamentadoras) se a tabela estiver vazia
+const nrCount = db.prepare('SELECT COUNT(*) as c FROM nrs').get().c;
+if (nrCount === 0) {
+  const nrs = [
+    ['RNM','Registro Nacional Migratório'],['NR01','Ordem de Serviço (SESMT)'],['NR06','Equipamento de Proteção Individual — EPI'],
+    ['NR10','Segurança em Instalações e Serviços em Eletricidade'],['NR11','Transporte, Movimentação e Armazenagem de Materiais'],
+    ['NR12','Segurança no Trabalho em Máquinas e Equipamentos'],['NR18','Segurança e Saúde na Ind. da Construção Civil'],
+    ['NR20','Segurança e Saúde com Inflamáveis e Combustíveis'],['NR25','Resíduos Industriais'],
+    ['NR26','Sinalização de Segurança'],['NR33','Segurança em Espaço Confinado'],['NR35','Trabalho em Altura'],
+    ['eSocial','Registro e Social (RH)'],['FEPI','Ficha de EPIs (SESMT)'],['ASO','Atestado de Saúde Ocupacional (SESMT)'],
+    ['NR01MILI','NR 01 - Integração MILI (Individual)'],
+  ];
+  const ins = db.prepare('INSERT OR IGNORE INTO nrs (codigo,descricao) VALUES (?,?)');
+  for (const [cod,desc] of nrs) ins.run(cod,desc);
+  console.log('🌱 Auto-seed: 16 NRs criadas');
+}
+
 // ══════════════════ MULTER ══════════════════
 const storage = multer.diskStorage({
   destination: 'uploads/',
