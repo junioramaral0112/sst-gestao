@@ -600,13 +600,13 @@ async function telaColaboradores() {
   if (!r1?.ok) return; window._cols = await r1.json(); window._locs = r2?.ok ? await r2.json() : [];
   document.getElementById('main-content').innerHTML = `
     <div class="flex items-center justify-between mb-4"><h2 class="text-xl font-bold text-gray-800">Colaboradores</h2><button onclick="modalCol()" class="bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-800">+ Novo</button></div>
-    <div class="bg-white rounded-xl border overflow-x-auto"><table class="w-full text-sm"><thead><tr class="bg-gray-50 text-left text-xs uppercase text-gray-500"><th class="p-3">ID</th><th class="p-3">NOME</th><th class="p-3">Função</th><th class="p-3">Localidade</th><th class="p-3">Tipo</th><th class="p-3">Alocação</th><th class="p-3">Status</th><th class="p-3">Ações</th></tr></thead>
+    <div class="bg-white rounded-xl border" style="overflow:visible"><table class="w-full text-sm"><thead><tr class="bg-gray-50 text-left text-xs uppercase text-gray-500"><th class="p-3">ID</th><th class="p-3">NOME</th><th class="p-3">Função</th><th class="p-3">Localidade</th><th class="p-3">Tipo</th><th class="p-3">Alocação</th><th class="p-3">Status</th><th class="p-3">Ações</th></tr></thead>
       <tbody>${window._cols.map(c => `<tr class="border-t"><td class="p-3">${c.id}</td><td class="p-3"><a href="#" onclick="event.preventDefault();perfilCol(${c.id})" class="text-blue-700 font-semibold hover:underline">${c.nome}</a></td><td class="p-3">${c.funcao||'-'}</td><td class="p-3 text-xs">${c.cidade||''}${c.estado?'-'+c.estado:''}</td><td class="p-3"><span class="px-2 py-0.5 rounded text-xs font-bold ${c.tipo_trabalho==='FIXO'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${c.tipo_trabalho}</span></td><td class="p-3 text-xs">${c.data_alocacao_inicio||'-'} → ${c.data_alocacao_fim||'-'}</td><td class="p-3"><span class="px-2 py-0.5 rounded text-xs font-bold ${c.status==='ativo'?'bg-green-100 text-green-700':'bg-red-100 text-red-700'}">${c.status==='ativo'?'ATIVO':'DESLIGADO'}</span></td><td class="p-3 relative">
         <button onclick="event.stopPropagation();this.nextElementSibling.classList.toggle('hidden')" class="text-gray-500 font-bold text-lg leading-none px-1">...</button>
-        <div class="hidden absolute right-0 top-8 bg-white border rounded-lg shadow-lg z-10 w-40 py-1 text-sm">
-          <a href="#" onclick="event.preventDefault();editCol(${c.id})" class="block px-4 py-2 hover:bg-gray-50">✏️ Editar</a>
-          <a href="#" onclick="event.preventDefault();toggleColStatus(${c.id},'${c.status}')" class="block px-4 py-2 hover:bg-gray-50">🔛 ${c.status==='ativo'?'Desligar':'Ligar'}</a>
-          <a href="#" onclick="event.preventDefault();delCol(${c.id})" class="block px-4 py-2 hover:bg-gray-50 text-red-600">🗑️ Excluir</a>
+        <div class="hidden absolute right-0 top-10 bg-white border border-gray-200 rounded-xl shadow-xl z-[9999] w-44 py-1.5 text-sm">
+          <a href="#" onclick="event.preventDefault();event.stopPropagation();editCol(${c.id})" class="block px-4 py-2.5 hover:bg-gray-50 text-gray-700">✏️ Editar</a>
+          <a href="#" onclick="event.preventDefault();event.stopPropagation();toggleColStatus(${c.id},'${c.status}')" class="block px-4 py-2.5 hover:bg-gray-50 text-gray-700">🔛 ${c.status==='ativo'?'Desligar':'Ligar'}</a>
+          <a href="#" onclick="event.preventDefault();event.stopPropagation();delCol(${c.id})" class="block px-4 py-2.5 hover:bg-red-50 text-red-600">🗑️ Excluir</a>
         </div></td></tr>`).join('')}</tbody></table></div>`;
 }
 document.addEventListener('click', () => document.querySelectorAll('.relative .hidden').forEach(m => m.classList.add('hidden')));
