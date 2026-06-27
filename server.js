@@ -196,6 +196,14 @@ app.post('/api/empresas', auth, (req, res) => {
   res.status(201).json({ id: r.lastInsertRowid });
 });
 
+app.delete('/api/empresas/:id', auth, (req, res) => {
+  const e = db.prepare('SELECT * FROM empresas WHERE id = ?').get(req.params.id);
+  if (!e) return res.status(404).json({ error: 'Empresa não encontrada' });
+  // ON DELETE CASCADE limpa localidades, colaboradores, documentos, usuario_empresas
+  db.prepare('DELETE FROM empresas WHERE id = ?').run(req.params.id);
+  res.json({ ok: true });
+});
+
 app.get('/api/empresas/:id/localidades', auth, (req, res) => {
   res.json(db.prepare('SELECT * FROM localidades WHERE empresa_id = ?').all(req.params.id));
 });

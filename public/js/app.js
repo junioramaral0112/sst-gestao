@@ -29,13 +29,32 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
 async function loadEmpresas() {
   const res = await api('/api/empresas'); if (!res?.ok) return;
   const emps = await res.json();
+  window._empresas = emps;
   document.getElementById('user-info').textContent = `👤 ${usuario?.nome || ''}`;
-  document.getElementById('empresas-grid').innerHTML = emps.map(e => `
-    <div onclick="selEmpresa(${e.id},'${e.nome_fantasia.replace(/'/g,"\\'")}')" class="bg-white rounded-xl border p-5 cursor-pointer hover:border-blue-500 hover:shadow-lg transition">
-      <h3 class="font-bold text-gray-800">🏢 ${e.nome_fantasia}</h3>
-      <p class="text-xs text-gray-500 font-mono mt-1">CNPJ: ${e.cnpj}</p>
-      <p class="text-xs text-gray-400 mt-2">📍 ${e.localidades.length} localidade(s)</p>
-    </div>`).join('');
+  document.getElementById('empresas-grid').innerHTML = `
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="text-xl font-bold text-gray-800">Selecione uma Empresa</h2>
+      <button onclick="modalEmpresa()" class="flex items-center gap-1 px-4 py-2.5 rounded-lg text-sm font-bold transition" style="background:#111;color:#fff">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/></svg>
+        Nova Empresa
+      </button>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">${emps.map(e => `
+      <div class="bg-white rounded-xl border p-5 hover:shadow-lg transition group relative">
+        <div onclick="selEmpresa(${e.id},'${e.nome_fantasia.replace(/'/g,"\\'")}')" class="cursor-pointer">
+          <h3 class="font-bold text-gray-800 pr-12">🏢 ${e.nome_fantasia}</h3>
+          <p class="text-xs text-gray-500 font-mono mt-1">CNPJ: ${e.cnpj}</p>
+          <p class="text-xs text-gray-400 mt-2">📍 ${e.localidades.length} localidade(s)</p>
+        </div>
+        <div class="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+          <button onclick="event.stopPropagation();editarEmpresa(${e.id})" title="Editar" class="p-1.5 rounded-lg hover:bg-blue-50 text-blue-600 transition">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          </button>
+          <button onclick="event.stopPropagation();excluirEmpresa(${e.id},'${e.nome_fantasia.replace(/'/g,"\\'")}')" title="Excluir" class="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+        </div>
+      </div>`).join('')}</div>`;
   show('tela-empresas');
 }
 
@@ -47,6 +66,51 @@ function selEmpresa(id, nome) {
 
 function trocarEmpresa() { empresaAtiva = null; localStorage.removeItem('sst_empresa'); loadEmpresas(); }
 async function logout() { await api('/api/logout', { method: 'POST' }).catch(()=>{}); clearAuth(); show('tela-login'); }
+
+// ── CRUD Empresas ──
+function modalEmpresa(dados = null) {
+  const editando = !!dados;
+  modal(editando ? 'Editar Empresa' : 'Nova Empresa', `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div><label class="text-xs font-semibold text-gray-500 uppercase">Nome Fantasia *</label><input id="emp-fantasia" value="${dados?.nome_fantasia||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+      <div><label class="text-xs font-semibold text-gray-500 uppercase">Razão Social</label><input id="emp-razao" value="${dados?.razao_social||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+      <div><label class="text-xs font-semibold text-gray-500 uppercase">CNPJ *</label><input id="emp-cnpj" value="${dados?.cnpj||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+      <div><label class="text-xs font-semibold text-gray-500 uppercase">Email</label><input id="emp-email" value="${dados?.email||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+      <div><label class="text-xs font-semibold text-gray-500 uppercase">Celular</label><input id="emp-celular" value="${dados?.celular||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+      <div><label class="text-xs font-semibold text-gray-500 uppercase">Tipo</label><input id="emp-tipo" value="${dados?.tipo||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+      <div class="md:col-span-2"><label class="text-xs font-semibold text-gray-500 uppercase">Endereço</label><input id="emp-endereco" value="${dados?.endereco||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+      <div class="md:col-span-2"><label class="text-xs font-semibold text-gray-500 uppercase">Contato</label><input id="emp-contato" value="${dados?.contato||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+      <input id="emp-estadual" value="${dados?.inscricao_estadual||''}" type="hidden">
+      <input id="emp-municipal" value="${dados?.inscricao_municipal||''}" type="hidden">
+    </div>
+  `, async () => {
+    const payload = {
+      nome_fantasia: q('#emp-fantasia'), razao_social: q('#emp-razao'), cnpj: q('#emp-cnpj'),
+      email: q('#emp-email'), celular: q('#emp-celular'), tipo: q('#emp-tipo'),
+      endereco: q('#emp-endereco'), contato: q('#emp-contato'),
+      inscricao_estadual: q('#emp-estadual'), inscricao_municipal: q('#emp-municipal'),
+    };
+    if (!payload.nome_fantasia || !payload.cnpj) { alert('Nome Fantasia e CNPJ são obrigatórios.'); return; }
+    if (editando) {
+      await api(`/api/empresas/${dados.id}`, { method: 'PUT', body: JSON.stringify(payload) });
+    } else {
+      await api('/api/empresas', { method: 'POST', body: JSON.stringify(payload) });
+    }
+    closeModal(); loadEmpresas();
+  });
+}
+
+function editarEmpresa(id) {
+  const e = window._empresas?.find(x => x.id === id);
+  if (!e) return;
+  modalEmpresa(e);
+}
+
+async function excluirEmpresa(id, nome) {
+  if (!confirm(`Excluir "${nome}"?\n\nIsso apagará TODOS os dados: localidades, colaboradores, documentos e NRs vinculadas.\nEsta ação é irreversível.`)) return;
+  await api(`/api/empresas/${id}`, { method: 'DELETE' });
+  loadEmpresas();
+}
 
 // ═══════ WELCOME ═══════
 function telaWelcome() {
