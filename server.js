@@ -50,7 +50,8 @@ db.pragma('foreign_keys = ON');
 db.exec(`
   CREATE TABLE IF NOT EXISTS usuarios (
     id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT, email TEXT UNIQUE,
-    senha_hash TEXT, criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    senha_hash TEXT, trocar_senha INTEGER DEFAULT 0,
+    criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
   );
   CREATE TABLE IF NOT EXISTS empresas (
     id INTEGER PRIMARY KEY AUTOINCREMENT, razao_social TEXT, nome_fantasia TEXT,
@@ -97,13 +98,16 @@ db.exec(`
   );
 `);
 
+// ══════════════════ MIGRATION (colunas novas) ══════════════════
+try { db.exec('ALTER TABLE usuarios ADD COLUMN trocar_senha INTEGER DEFAULT 0'); } catch {}
+
 // ══════════════════ AUTO-SEED (produção) ══════════════════
 // Cria o usuário admin padrão se a tabela estiver vazia
 // Garante que o Render sempre tenha um login funcional
 const usuarioCount = db.prepare('SELECT COUNT(*) as c FROM usuarios').get().c;
 if (usuarioCount === 0) {
   const hash = bcrypt.hashSync('123456', 10);
-  db.prepare('INSERT INTO usuarios (id,nome,email,senha_hash) VALUES (?,?,?,?)').run(1, 'Administrador', 'admin@empresa.com', hash);
+  db.prepare('INSERT INTO usuarios (id,nome,email,senha_hash,trocar_senha) VALUES (?,?,?,?,1)').run(1, 'Administrador', 'admin@empresa.com', hash);
   console.log('🌱 Auto-seed: usuário admin criado (admin@empresa.com / 123456)');
 }
 
@@ -155,7 +159,19 @@ app.post('/api/login', (req, res) => {
   if (!user || !bcrypt.compareSync(password, user.senha_hash))
     return res.status(401).json({ error: 'Credenciais inválidas' });
   const token = jwt.sign({ id: user.id, nome: user.nome, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
-  res.json({ token, user: { id: user.id, nome: user.nome, email: user.email } });
+  res.json({ token, user: { id: user.id, nome: user.nome, email: user.email, trocar_senha: !!user.trocar_senha } });
+});
+
+app.put('/api/usuarios/senha', auth, (req, res) => {
+  const { senha_atual, senha_nova } = req.body;
+  if (!senha_nova || senha_nova.length < 4)
+    return res.status(400).json({ error: 'Nova senha deve ter no mínimo 4 caracteres' });
+  const user = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(req.user.id);
+  if (!user || !bcrypt.compareSync(senha_atual, user.senha_hash))
+    return res.status(400).json({ error: 'Senha atual incorreta' });
+  const hash = bcrypt.hashSync(senha_nova, 10);
+  db.prepare('UPDATE usuarios SET senha_hash=?,trocar_senha=0 WHERE id=?').run(hash, req.user.id);
+  res.json({ ok: true });
 });
 
 // ══════════════════ EMPRESAS ══════════════════
@@ -199,7 +215,19 @@ app.post('/api/empresas', auth, (req, res) => {
 app.delete('/api/empresas/:id', auth, (req, res) => {
   const e = db.prepare('SELECT * FROM empresas WHERE id = ?').get(req.params.id);
   if (!e) return res.status(404).json({ error: 'Empresa não encontrada' });
-  // ON DELETE CASCADE limpa localidades, colaboradores, documentos, usuario_empresas
+
+  // Verificar dependências antes de excluir
+  const colCount = db.prepare('SELECT COUNT(*) as c FROM colaboradores WHERE empresa_id = ?').get(req.params.id).c;
+  const docCount = db.prepare('SELECT COUNT(*) as c FROM documentos WHERE empresa_id = ?').get(req.params.id).c;
+  if (colCount > 0 || docCount > 0) {
+    return res.status(409).json({
+      error: 'Não é possível excluir uma empresa que possui colaboradores ou documentos ativos. Remova os vínculos primeiro.',
+      colaboradores: colCount,
+      documentos: docCount,
+    });
+  }
+
+  // Só exclui se não houver dependências
   db.prepare('DELETE FROM empresas WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
 });

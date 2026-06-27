@@ -22,7 +22,12 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
   const res = await fetch(API + '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: document.getElementById('login-email').value, password: document.getElementById('login-senha').value }) });
   const data = await res.json();
   if (!res.ok) { document.getElementById('login-erro').textContent = data.error; return; }
-  setAuth(data.token, data.user); loadEmpresas();
+  setAuth(data.token, data.user);
+  if (data.user.trocar_senha) {
+    modalTrocarSenha();
+  } else {
+    loadEmpresas();
+  }
 });
 
 // ═══════ EMPRESAS ═══════
@@ -98,9 +103,83 @@ function selEmpresa(id, nome) {
 function trocarEmpresa() { empresaAtiva = null; localStorage.removeItem('sst_empresa'); loadEmpresas(); }
 async function logout() { await api('/api/logout', { method: 'POST' }).catch(()=>{}); clearAuth(); show('tela-login'); }
 
+// ── Modal forçado de troca de senha (não pode ser fechado) ──
+function modalTrocarSenha() {
+  const ov = document.createElement('div');
+  ov.id = 'modal-overlay';
+  ov.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-50';
+  ov.style.backdropFilter = 'blur(4px)';
+  ov.innerHTML = `
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-8">
+      <div class="text-center mb-6">
+        <div class="text-4xl mb-3">🔐</div>
+        <h2 class="text-xl font-bold text-gray-900">Atualização de Senha Obrigatória</h2>
+        <p class="text-sm text-gray-500 mt-2">Por segurança, você precisa trocar a senha padrão antes de acessar o sistema.</p>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="text-xs font-semibold text-gray-500 uppercase">Senha Atual</label>
+          <input type="password" id="ts-senha-atual" class="w-full border rounded-lg px-4 py-3 text-sm mt-1" placeholder="Senha atual">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-gray-500 uppercase">Nova Senha</label>
+          <input type="password" id="ts-senha-nova" class="w-full border rounded-lg px-4 py-3 text-sm mt-1" placeholder="Mínimo 4 caracteres">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-gray-500 uppercase">Confirmar Nova Senha</label>
+          <input type="password" id="ts-senha-confirmar" class="w-full border rounded-lg px-4 py-3 text-sm mt-1" placeholder="Repita a nova senha">
+        </div>
+        <p id="ts-erro" class="text-red-500 text-xs text-center"></p>
+        <button id="ts-btn" onclick="executarTrocaSenha()" class="w-full py-3 rounded-xl text-white font-bold text-sm transition" style="background:#111">Trocar Senha e Acessar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+}
+
+async function executarTrocaSenha() {
+  const atual = document.getElementById('ts-senha-atual')?.value;
+  const nova = document.getElementById('ts-senha-nova')?.value;
+  const confirmar = document.getElementById('ts-senha-confirmar')?.value;
+  const erro = document.getElementById('ts-erro');
+  const btn = document.getElementById('ts-btn');
+
+  if (!atual || !nova || !confirmar) { erro.textContent = 'Preencha todos os campos.'; return; }
+  if (nova.length < 4) { erro.textContent = 'Nova senha deve ter no mínimo 4 caracteres.'; return; }
+  if (nova !== confirmar) { erro.textContent = 'As senhas não conferem.'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+  const res = await api('/api/usuarios/senha', { method: 'PUT', body: JSON.stringify({ senha_atual: atual, senha_nova: nova }) });
+  if (!res?.ok) {
+    const data = await res.json();
+    erro.textContent = data.error || 'Erro ao trocar senha.';
+    btn.disabled = false;
+    btn.textContent = 'Trocar Senha e Acessar';
+    return;
+  }
+  closeModal();
+  loadEmpresas();
+}
+
 // ── CRUD Empresas ──
 function modalEmpresa(dados = null) {
   const editando = !!dados;
+  const locsExistentes = dados?.localidades || [];
+  window._modalEmpresaId = dados?.id || null;
+  window._modalLocs = editando ? [...locsExistentes] : [];  // locs existentes + pendentes
+
+  const htmlLocs = `
+    <div class="localidades-section" style="margin-top:0;padding-top:0;border-top:none">
+      <h4>📍 Localidades / Unidades</h4>
+      <div class="localidade-add-row">
+        <input id="emp-loc-cidade" placeholder="Cidade" class="flex-[1.2]" style="flex:1.2">
+        <input id="emp-loc-uf" placeholder="UF" maxlength="2" style="max-width:50px;text-align:center">
+        <input id="emp-loc-endereco" placeholder="Endereço completo" class="flex-[2.5]" style="flex:2.5">
+        <button type="button" class="btn-add-localidade" onclick="addLocModal()">+ Adicionar</button>
+      </div>
+      <div class="localidades-list" id="modal-locs-list">${renderLocsModal(editando ? locsExistentes : [])}</div>
+    </div>`;
+
   modal(editando ? 'Editar Empresa' : 'Nova Empresa', `
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div><label class="text-xs font-semibold text-gray-500 uppercase">Nome Fantasia *</label><input id="emp-fantasia" value="${dados?.nome_fantasia||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
@@ -109,26 +188,88 @@ function modalEmpresa(dados = null) {
       <div><label class="text-xs font-semibold text-gray-500 uppercase">Email</label><input id="emp-email" value="${dados?.email||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
       <div><label class="text-xs font-semibold text-gray-500 uppercase">Celular</label><input id="emp-celular" value="${dados?.celular||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
       <div><label class="text-xs font-semibold text-gray-500 uppercase">Tipo</label><input id="emp-tipo" value="${dados?.tipo||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
-      <div class="md:col-span-2"><label class="text-xs font-semibold text-gray-500 uppercase">Endereço</label><input id="emp-endereco" value="${dados?.endereco||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
       <div class="md:col-span-2"><label class="text-xs font-semibold text-gray-500 uppercase">Contato</label><input id="emp-contato" value="${dados?.contato||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
       <input id="emp-estadual" value="${dados?.inscricao_estadual||''}" type="hidden">
       <input id="emp-municipal" value="${dados?.inscricao_municipal||''}" type="hidden">
+      <div class="md:col-span-2">${htmlLocs}</div>
     </div>
   `, async () => {
     const payload = {
       nome_fantasia: q('#emp-fantasia'), razao_social: q('#emp-razao'), cnpj: q('#emp-cnpj'),
       email: q('#emp-email'), celular: q('#emp-celular'), tipo: q('#emp-tipo'),
-      endereco: q('#emp-endereco'), contato: q('#emp-contato'),
+      endereco: '', contato: q('#emp-contato'),
       inscricao_estadual: q('#emp-estadual'), inscricao_municipal: q('#emp-municipal'),
     };
     if (!payload.nome_fantasia || !payload.cnpj) { alert('Nome Fantasia e CNPJ são obrigatórios.'); return; }
+
+    let empresaId = dados?.id;
     if (editando) {
-      await api(`/api/empresas/${dados.id}`, { method: 'PUT', body: JSON.stringify(payload) });
+      await api(`/api/empresas/${empresaId}`, { method: 'PUT', body: JSON.stringify(payload) });
     } else {
-      await api('/api/empresas', { method: 'POST', body: JSON.stringify(payload) });
+      const nova = await api('/api/empresas', { method: 'POST', body: JSON.stringify(payload) });
+      empresaId = nova?.id;
     }
+
+    // Criar apenas localidades novas (sem ID real)
+    if (empresaId && window._modalLocs.length) {
+      for (const loc of window._modalLocs) {
+        if (!loc.id) {
+          await api(`/api/empresas/${empresaId}/localidades`, { method: 'POST', body: JSON.stringify({ cidade: loc.cidade, estado: loc.estado, endereco_completo: loc.endereco_completo }) });
+        }
+      }
+    }
+
+    window._modalLocs = [];
+    window._modalEmpresaId = null;
     closeModal(); loadEmpresas();
-  });
+  }, [], 'Salvar');
+}
+
+function renderLocsModal(locs) {
+  if (!locs.length) return '<p class="text-xs text-gray-400 py-2">Nenhuma unidade cadastrada</p>';
+  return locs.map((l, i) => `
+    <div class="localidade-tag">
+      <div class="loc-info">
+        <span class="loc-cidade">${l.cidade} - ${l.estado}</span>
+        <span class="loc-endereco">${l.endereco_completo||''}</span>
+      </div>
+      <button type="button" class="loc-remove" onclick="remLocModal(${l.id||i},${!!l.id})" title="Remover">×</button>
+    </div>`).join('');
+}
+
+function addLocModal() {
+  const cidade = document.getElementById('emp-loc-cidade')?.value?.trim();
+  const estado = document.getElementById('emp-loc-uf')?.value?.trim()?.toUpperCase();
+  const endereco_completo = document.getElementById('emp-loc-endereco')?.value?.trim();
+  if (!cidade || !estado) { alert('Preencha Cidade e UF.'); return; }
+  window._modalLocs.push({ cidade, estado, endereco_completo });
+  refreshModalLocs();
+  document.getElementById('emp-loc-cidade').value = '';
+  document.getElementById('emp-loc-uf').value = '';
+  document.getElementById('emp-loc-endereco').value = '';
+}
+
+async function remLocModal(id, hasRealId) {
+  if (hasRealId) {
+    if (!confirm('Remover esta localidade? Colaboradores vinculados ficarão sem unidade.')) return;
+    await api(`/api/localidades/${id}`, { method: 'DELETE' });
+    // Recarrega localidades reais do servidor
+    const empId = window._modalEmpresaId;
+    if (empId) {
+      const res = await api(`/api/empresas/${empId}/localidades`);
+      window._modalLocs = res?.ok ? await res.json() : [];
+      refreshModalLocs();
+    }
+  } else {
+    window._modalLocs.splice(id, 1);
+    refreshModalLocs();
+  }
+}
+
+function refreshModalLocs() {
+  const el = document.getElementById('modal-locs-list');
+  if (!el) return;
+  el.innerHTML = renderLocsModal(window._modalLocs);
 }
 
 function editarEmpresa(id) {
@@ -138,8 +279,14 @@ function editarEmpresa(id) {
 }
 
 async function excluirEmpresa(id, nome) {
-  if (!confirm(`Excluir "${nome}"?\n\nIsso apagará TODOS os dados: localidades, colaboradores, documentos e NRs vinculadas.\nEsta ação é irreversível.`)) return;
-  await api(`/api/empresas/${id}`, { method: 'DELETE' });
+  if (!confirm(`Excluir "${nome}"?\n\nEsta ação é irreversível.`)) return;
+  const res = await api(`/api/empresas/${id}`, { method: 'DELETE' });
+  if (res?.status === 409) {
+    const data = await res.json();
+    alert(data.error || 'Não é possível excluir esta empresa.');
+    return;
+  }
+  if (!res?.ok) { alert('Erro ao excluir empresa.'); return; }
   loadEmpresas();
 }
 
@@ -182,18 +329,6 @@ async function telaMeusDados() {
       <div><label class="text-xs font-semibold text-gray-500 uppercase">Tipo</label><input id="md-tipo" value="${e.tipo||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
       <div><label class="text-xs font-semibold text-gray-500 uppercase">Email*</label><input id="md-email" value="${e.email||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
       <div><label class="text-xs font-semibold text-gray-500 uppercase">Contato*</label><input id="md-contato" value="${e.contato||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
-
-      <!-- Localidades / Unidades -->
-      <div class="localidades-section">
-        <h4>📍 Localidades / Unidades</h4>
-        <div class="localidade-add-row">
-          <input id="loc-cidade" placeholder="Cidade" class="flex-[1.2]">
-          <input id="loc-estado" placeholder="UF" maxlength="2" style="max-width:50px;text-align:center">
-          <input id="loc-endereco" placeholder="Endereço completo" class="flex-[2.5]">
-          <button type="button" class="btn-add-localidade" onclick="adicionarLocalidade()">+ Adicionar</button>
-        </div>
-        <div class="localidades-list" id="localidades-list">${renderLocalidades(locs)}</div>
-      </div>
 
       <div class="md:col-span-2"><label class="flex items-center gap-2 text-sm mt-4"><input type="checkbox" id="lgpd-check"> Confirmo que li e aceito os termos da LGPD</label></div>
       <div class="md:col-span-2 flex gap-3 mt-2"><button type="button" onclick="telaMeusDados()" class="px-6 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancelar</button><button type="submit" class="px-6 py-2 bg-blue-700 text-white rounded-lg text-sm font-bold hover:bg-blue-800">Salvar</button></div>
