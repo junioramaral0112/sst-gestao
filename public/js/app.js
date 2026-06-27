@@ -612,7 +612,10 @@ async function telaColaboradores() {
 document.addEventListener('click', () => document.querySelectorAll('.relative .hidden').forEach(m => m.classList.add('hidden')));
 
 async function modalCol() {
-  const locs = window._locs || [];
+  // Busca localidades da API (não depende de window._locs pré-carregado)
+  const resLocs = await api(`/api/empresas/${empresaAtiva.id}/localidades`);
+  const locs = resLocs?.ok ? await resLocs.json() : [];
+
   modal('Novo Colaborador', `
     <div class="grid grid-cols-2 gap-3">
       <div><label class="text-xs font-semibold text-gray-500 uppercase">Nome</label><input id="col-nome" class="w-full border rounded-lg px-3 py-2 text-sm"></div>
@@ -633,7 +636,7 @@ async function modalCol() {
       data_alocacao_fim: q('#col-fim'), localidade_id: parseInt(q('#col-loc')) || null,
       tipo_trabalho: document.querySelector('input[name="tipo"]:checked')?.value || 'FIXO'
     })}); closeModal(); telaColaboradores();
-  });
+  }, [], 'Cadastrar');
 }
 async function editCol(id) {
   const c = window._cols.find(x => x.id === id); if (!c) return;
