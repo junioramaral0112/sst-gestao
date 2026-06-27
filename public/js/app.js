@@ -500,10 +500,41 @@ async function modalCol() {
     })}); closeModal(); telaColaboradores();
   });
 }
-async function editCol(id) { const c = window._cols.find(x => x.id === id); if (!c) return;
-  modal('Editar', `<label class="text-xs font-semibold text-gray-500 uppercase">Nome</label><input id="col-nome" value="${c.nome||''}" class="w-full border rounded-lg px-3 py-2 text-sm mb-3"><label class="text-xs font-semibold text-gray-500 uppercase">Função</label><input id="col-funcao" value="${c.funcao||''}" class="w-full border rounded-lg px-3 py-2 text-sm mb-3">`, async () => {
-    await api(`/api/colaboradores/${id}`, { method: 'PUT', body: JSON.stringify({ nome: q('#col-nome'), funcao: q('#col-funcao'), status: c.status }) }); closeModal(); telaColaboradores();
-  });
+async function editCol(id) {
+  const c = window._cols.find(x => x.id === id); if (!c) return;
+  const locs = window._locs || [];
+  modal('Editar Colaborador', `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="md:col-span-2"><label class="text-xs font-semibold text-gray-500 uppercase">Nome *</label><input id="ec-nome" value="${c.nome||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+      <div><label class="text-xs font-semibold text-gray-500 uppercase">Email</label><input type="email" id="ec-email" value="${c.email||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+      <div><label class="text-xs font-semibold text-gray-500 uppercase">CPF</label><input id="ec-cpf" value="${c.cpf||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+      <div><label class="text-xs font-semibold text-gray-500 uppercase">Data Nascimento</label><input type="date" id="ec-nasc" value="${c.data_nascimento||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+      <div><label class="text-xs font-semibold text-gray-500 uppercase">Função</label><input id="ec-funcao" value="${c.funcao||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+      <div><label class="text-xs font-semibold text-gray-500 uppercase">Nacionalidade</label><input id="ec-nacionalidade" value="${c.nacionalidade||'Brasileiro'}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+      <div><label class="text-xs font-semibold text-gray-500 uppercase">Localidade de Trabalho</label><select id="ec-localidade" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"><option value="">Nenhuma</option>${locs.map(l => `<option value="${l.id}" ${c.localidade_id===l.id?'selected':''}>${l.cidade}-${l.estado}${l.endereco_completo?' — '+l.endereco_completo:''}</option>`)}</select></div>
+      <div><label class="text-xs font-semibold text-gray-500 uppercase">Tipo de Contrato</label><select id="ec-tipo" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"><option value="FIXO" ${c.tipo_trabalho==='FIXO'?'selected':''}>FIXO</option><option value="EXPORADICO" ${c.tipo_trabalho==='EXPORADICO'?'selected':''}>EXPORÁDICO</option></select></div>
+      <div><label class="text-xs font-semibold text-gray-500 uppercase">Status</label><select id="ec-status" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"><option value="ativo" ${c.status==='ativo'?'selected':''}>ATIVO</option><option value="inativo" ${c.status==='inativo'?'selected':''}>INATIVO</option></select></div>
+      <div><label class="text-xs font-semibold text-gray-500 uppercase">Início Alocação</label><input type="date" id="ec-inicio" value="${c.data_alocacao_inicio||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+      <div><label class="text-xs font-semibold text-gray-500 uppercase">Fim Alocação</label><input type="date" id="ec-fim" value="${c.data_alocacao_fim||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+    </div>
+  `, async () => {
+    const payload = {
+      nome: q('#ec-nome'),
+      email: q('#ec-email'),
+      cpf: q('#ec-cpf'),
+      data_nascimento: q('#ec-nasc'),
+      funcao: q('#ec-funcao'),
+      nacionalidade: q('#ec-nacionalidade'),
+      localidade_id: parseInt(q('#ec-localidade')) || null,
+      tipo_trabalho: q('#ec-tipo'),
+      status: q('#ec-status'),
+      data_alocacao_inicio: q('#ec-inicio'),
+      data_alocacao_fim: q('#ec-fim'),
+    };
+    if (!payload.nome) { alert('Nome é obrigatório.'); return; }
+    await api(`/api/colaboradores/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+    closeModal(); telaColaboradores();
+  }, [], 'Salvar Alterações');
 }
 async function toggleColStatus(id, st) { await api(`/api/colaboradores/${id}/status`, { method: 'PUT', body: JSON.stringify({ status: st === 'ativo' ? 'inativo' : 'ativo' }) }); telaColaboradores(); }
 async function delCol(id) { if (confirm('Excluir?')) { await api(`/api/colaboradores/${id}`, { method: 'DELETE' }); telaColaboradores(); } }
@@ -585,14 +616,14 @@ function uploadNR(colId, nrId) {
 }
 
 // ═══════ MODAL GENÉRICO ═══════
-function modal(title, html, onSave, extraBtns = []) {
+function modal(title, html, onSave, extraBtns = [], saveLabel = 'Estampar') {
   closeModal();
   const ov = document.createElement('div'); ov.id = 'modal-overlay'; ov.className = 'fixed inset-0 bg-black/50 flex items-start justify-center pt-20 z-50';
   const extraHTML = extraBtns.map(b => b.href ? `<a href="${b.href}" target="_blank" class="${b.cls}">${b.text}</a>` : `<button onclick="${b.onclick||''}" class="${b.cls}">${b.text}</button>`).join('');
-  ov.innerHTML = `<div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto"><div class="px-6 py-4 border-b flex items-center justify-between"><h3 class="font-bold text-lg">${title}</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button></div><div class="p-6">${html}</div><div class="px-6 py-4 border-t flex gap-3 justify-between"><div>${extraHTML}</div><div class="flex gap-3"><button onclick="closeModal()" class="px-5 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancelar</button><button id="modal-save" class="px-5 py-2 bg-blue-700 text-white rounded-lg text-sm font-bold hover:bg-blue-800">Estampar</button></div></div></div>`;
+  ov.innerHTML = `<div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto"><div class="px-6 py-4 border-b flex items-center justify-between"><h3 class="font-bold text-lg">${title}</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button></div><div class="p-6">${html}</div><div class="px-6 py-4 border-t flex gap-3 justify-between"><div>${extraHTML}</div><div class="flex gap-3"><button onclick="closeModal()" class="px-5 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancelar</button><button id="modal-save" class="px-5 py-2 bg-blue-700 text-white rounded-lg text-sm font-bold hover:bg-blue-800">${saveLabel}</button></div></div></div>`;
   document.body.appendChild(ov);
   const btn = ov.querySelector('#modal-save');
-  btn.addEventListener('click', async () => { btn.disabled = true; btn.textContent = 'Salvando...'; try { await onSave(); } catch (e) { console.error(e); alert('Erro: ' + e.message); } btn.disabled = false; btn.textContent = 'Estampar'; });
+  btn.addEventListener('click', async () => { btn.disabled = true; btn.textContent = 'Salvando...'; try { await onSave(); } catch (e) { console.error(e); alert('Erro: ' + e.message); } btn.disabled = false; btn.textContent = saveLabel; });
   ov.addEventListener('click', (e) => { if (e.target === ov) closeModal(); });
 }
 function closeModal() { document.getElementById('modal-overlay')?.remove(); }
