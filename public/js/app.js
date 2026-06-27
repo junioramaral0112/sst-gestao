@@ -206,8 +206,9 @@ function modalEmpresa(dados = null) {
     if (editando) {
       await api(`/api/empresas/${empresaId}`, { method: 'PUT', body: JSON.stringify(payload) });
     } else {
-      const nova = await api('/api/empresas', { method: 'POST', body: JSON.stringify(payload) });
-      empresaId = nova?.id;
+      const novaRes = await api('/api/empresas', { method: 'POST', body: JSON.stringify(payload) });
+      const nova = novaRes?.ok ? await novaRes.json() : {};
+      empresaId = nova.id;
     }
 
     // Criar apenas localidades novas (sem ID real)
@@ -331,6 +332,11 @@ async function telaMeusDados() {
       <div><label class="text-xs font-semibold text-gray-500 uppercase">Contato*</label><input id="md-contato" value="${e.contato||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
 
       <div class="md:col-span-2"><label class="flex items-center gap-2 text-sm mt-4"><input type="checkbox" id="lgpd-check"> Confirmo que li e aceito os termos da LGPD</label></div>
+	      <!-- Localidades (leitura) -->
+	      <div class="localidades-section md:col-span-2">
+	        <h4>📍 Localidades / Unidades (${locs.length})</h4>
+	        <div class="localidades-list">${locs.length ? locs.map(l => `<div class="localidade-tag"><div class="loc-info"><span class="loc-cidade">${l.cidade} - ${l.estado}</span><span class="loc-endereco">${l.endereco_completo||''}</span></div></div>`).join('') : '<p class="text-xs text-gray-400 py-2">Nenhuma unidade cadastrada. Use Editar Empresa para adicionar.</p>'}</div>
+	      </div>
       <div class="md:col-span-2 flex gap-3 mt-2"><button type="button" onclick="telaMeusDados()" class="px-6 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancelar</button><button type="submit" class="px-6 py-2 bg-blue-700 text-white rounded-lg text-sm font-bold hover:bg-blue-800">Salvar</button></div>
     </form>`;
   document.getElementById('frm-dados').addEventListener('submit', async (ev) => {
