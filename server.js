@@ -215,6 +215,19 @@ app.post('/api/empresas/:id/localidades', auth, (req, res) => {
   res.status(201).json({ id: r.lastInsertRowid });
 });
 
+app.put('/api/localidades/:id', auth, (req, res) => {
+  const { cidade, estado, endereco_completo } = req.body;
+  db.prepare('UPDATE localidades SET cidade=?,estado=?,endereco_completo=? WHERE id=?')
+    .run(cidade||'', estado||'', endereco_completo||'', req.params.id);
+  res.json({ ok: true });
+});
+
+app.delete('/api/localidades/:id', auth, (req, res) => {
+  // Colaboradores vinculados a esta localidade terao localidade_id = NULL (ON DELETE SET NULL)
+  db.prepare('DELETE FROM localidades WHERE id = ?').run(req.params.id);
+  res.json({ ok: true });
+});
+
 // ══════════════════ COLABORADORES ══════════════════
 app.get('/api/empresas/:id/colaboradores', auth, (req, res) => {
   const { localidade_id, tipo_trabalho } = req.query;

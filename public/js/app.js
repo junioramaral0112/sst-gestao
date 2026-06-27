@@ -169,6 +169,7 @@ function telaWelcome() {
 // ═══════ MEUS DADOS ═══════
 async function telaMeusDados() {
   const res = await api(`/api/empresas/${empresaAtiva.id}`); if (!res?.ok) return; const e = await res.json();
+  const locs = e.localidades || [];
   document.getElementById('main-content').innerHTML = `
     <h2 class="text-xl font-bold text-gray-800 mb-4">Meus Dados — ${e.nome_fantasia}</h2>
     <form id="frm-dados" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl bg-white rounded-xl border p-6">
@@ -177,11 +178,23 @@ async function telaMeusDados() {
       <div><label class="text-xs font-semibold text-gray-500 uppercase">CNPJ/CPF</label><input id="md-cnpj" value="${e.cnpj||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
       <div><label class="text-xs font-semibold text-gray-500 uppercase">Inscrição estadual</label><input id="md-estadual" value="${e.inscricao_estadual||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
       <div><label class="text-xs font-semibold text-gray-500 uppercase">Inscrição municipal</label><input id="md-municipal" value="${e.inscricao_municipal||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
-      <div><label class="text-xs font-semibold text-gray-500 uppercase">Endereço</label><input id="md-endereco" value="${e.endereco||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
       <div><label class="text-xs font-semibold text-gray-500 uppercase">Celular*</label><input id="md-celular" value="${e.celular||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
       <div><label class="text-xs font-semibold text-gray-500 uppercase">Tipo</label><input id="md-tipo" value="${e.tipo||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
       <div><label class="text-xs font-semibold text-gray-500 uppercase">Email*</label><input id="md-email" value="${e.email||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
       <div><label class="text-xs font-semibold text-gray-500 uppercase">Contato*</label><input id="md-contato" value="${e.contato||''}" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+
+      <!-- Localidades / Unidades -->
+      <div class="localidades-section">
+        <h4>📍 Localidades / Unidades</h4>
+        <div class="localidade-add-row">
+          <input id="loc-cidade" placeholder="Cidade" class="flex-[1.2]">
+          <input id="loc-estado" placeholder="UF" maxlength="2" style="max-width:50px;text-align:center">
+          <input id="loc-endereco" placeholder="Endereço completo" class="flex-[2.5]">
+          <button type="button" class="btn-add-localidade" onclick="adicionarLocalidade()">+ Adicionar</button>
+        </div>
+        <div class="localidades-list" id="localidades-list">${renderLocalidades(locs)}</div>
+      </div>
+
       <div class="md:col-span-2"><label class="flex items-center gap-2 text-sm mt-4"><input type="checkbox" id="lgpd-check"> Confirmo que li e aceito os termos da LGPD</label></div>
       <div class="md:col-span-2 flex gap-3 mt-2"><button type="button" onclick="telaMeusDados()" class="px-6 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancelar</button><button type="submit" class="px-6 py-2 bg-blue-700 text-white rounded-lg text-sm font-bold hover:bg-blue-800">Salvar</button></div>
     </form>`;
@@ -189,11 +202,48 @@ async function telaMeusDados() {
     ev.preventDefault(); if (!document.getElementById('lgpd-check').checked) { alert('Aceite LGPD'); return; }
     await api(`/api/empresas/${empresaAtiva.id}`, { method: 'PUT', body: JSON.stringify({
       nome_fantasia: q('#md-fantasia'), razao_social: q('#md-razao'), cnpj: q('#md-cnpj'), inscricao_estadual: q('#md-estadual'),
-      inscricao_municipal: q('#md-municipal'), endereco: q('#md-endereco'), celular: q('#md-celular'), tipo: q('#md-tipo'),
+      inscricao_municipal: q('#md-municipal'), celular: q('#md-celular'), tipo: q('#md-tipo'),
       email: q('#md-email'), contato: q('#md-contato')
     })}); alert('✅ Dados salvos!');
   });
 }
+
+function renderLocalidades(locs) {
+  if (!locs.length) return '<p class="text-xs text-gray-400 py-2">Nenhuma unidade cadastrada</p>';
+  return locs.map(l => `
+    <div class="localidade-tag">
+      <div class="loc-info">
+        <span class="loc-cidade">${l.cidade} - ${l.estado}</span>
+        <span class="loc-endereco">${l.endereco_completo||''}</span>
+      </div>
+      <button type="button" class="loc-remove" onclick="removerLocalidade(${l.id})" title="Remover">×</button>
+    </div>`).join('');
+}
+
+async function adicionarLocalidade() {
+  const cidade = q('#loc-cidade');
+  const estado = q('#loc-estado').toUpperCase();
+  const endereco_completo = q('#loc-endereco');
+  if (!cidade || !estado) { alert('Preencha pelo menos Cidade e UF.'); return; }
+  await api(`/api/empresas/${empresaAtiva.id}/localidades`, { method: 'POST', body: JSON.stringify({ cidade, estado, endereco_completo }) });
+  // Recarrega só a lista de localidades
+  const res = await api(`/api/empresas/${empresaAtiva.id}/localidades`);
+  const locs = res?.ok ? await res.json() : [];
+  document.getElementById('localidades-list').innerHTML = renderLocalidades(locs);
+  // Limpa inputs
+  document.getElementById('loc-cidade').value = '';
+  document.getElementById('loc-estado').value = '';
+  document.getElementById('loc-endereco').value = '';
+}
+
+async function removerLocalidade(id) {
+  if (!confirm('Remover esta localidade? Colaboradores vinculados ficarão sem unidade.')) return;
+  await api(`/api/localidades/${id}`, { method: 'DELETE' });
+  const res = await api(`/api/empresas/${empresaAtiva.id}/localidades`);
+  const locs = res?.ok ? await res.json() : [];
+  document.getElementById('localidades-list').innerHTML = renderLocalidades(locs);
+}
+
 function q(id) { return document.querySelector(id)?.value || ''; }
 
 /** Download autenticado — fetch + blob + download forçado */
@@ -438,7 +488,7 @@ async function modalCol() {
       <div><label class="text-xs font-semibold text-gray-500 uppercase">País</label><input id="col-nac" value="Brasileiro" class="w-full border rounded-lg px-3 py-2 text-sm"></div>
       <div><label class="text-xs font-semibold text-gray-500 uppercase">Início Alocação</label><input type="date" id="col-inicio" class="w-full border rounded-lg px-3 py-2 text-sm"></div>
       <div><label class="text-xs font-semibold text-gray-500 uppercase">Fim Alocação</label><input type="date" id="col-fim" class="w-full border rounded-lg px-3 py-2 text-sm"></div>
-      <div><label class="text-xs font-semibold text-gray-500 uppercase">Localidade</label><select id="col-loc" class="w-full border rounded-lg px-3 py-2 text-sm"><option value="">--</option>${locs.map(l => `<option value="${l.id}">${l.cidade}-${l.estado}</option>`)}</select></div>
+      <div><label class="text-xs font-semibold text-gray-500 uppercase">Localidade de Trabalho *</label><select id="col-loc" class="w-full border rounded-lg px-3 py-2 text-sm"><option value="">Selecione a unidade...</option>${locs.map(l => `<option value="${l.id}">${l.cidade}-${l.estado}${l.endereco_completo?' — '+l.endereco_completo:''}</option>`)}</select></div>
       <div><label class="text-xs font-semibold text-gray-500 uppercase">Tipo Trabalho</label><div class="flex gap-4 mt-1"><label class="flex items-center gap-1 text-sm"><input type="radio" name="tipo" value="FIXO" checked> FIXO</label><label class="flex items-center gap-1 text-sm"><input type="radio" name="tipo" value="EXPORADICO"> EXPORÁDICO</label></div></div>
     </div>
   `, async () => {
