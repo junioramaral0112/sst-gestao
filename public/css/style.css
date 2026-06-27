@@ -163,3 +163,239 @@ input:focus, select:focus, textarea:focus {
   header { flex-direction: column; align-items: flex-start; gap: 8px; }
   nav { flex-wrap: wrap; }
 }
+
+/* ══════════════════ TELA DE EMPRESAS — LAYOUT 2 COLUNAS ══════════════════ */
+.empresas-layout {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+}
+
+/* ── Sidebar (esquerda) ── */
+.empresas-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px 22px;
+  text-align: center;
+}
+
+.sidebar-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+}
+
+.sidebar-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--dark);
+  margin: 0 0 4px;
+}
+
+.sidebar-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 20px;
+}
+
+.btn-nova-empresa {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  justify-content: center;
+  padding: 12px 20px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.btn-nova-empresa:hover {
+  background: #15803d;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.3);
+}
+
+.sidebar-stats {
+  display: flex;
+  gap: 10px;
+}
+.stat-item {
+  flex: 1;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 10px;
+  text-align: center;
+}
+.stat-num {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--dark);
+}
+.stat-label {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+/* ── Main (direita) ── */
+.empresas-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.empresas-main-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.empresas-main-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--dark);
+  margin: 0;
+}
+
+.empresas-main-count {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.empresas-grid-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1100px) {
+  .empresas-grid-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .empresas-layout {
+    flex-direction: column;
+  }
+  .empresas-sidebar {
+    width: 100%;
+  }
+  .empresas-grid-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Cards de empresa ── */
+.empresa-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.empresa-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+
+.empresa-card-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.empresa-card-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+.empresa-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.empresa-card-nome {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--dark);
+  margin: 0 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.empresa-card-cnpj {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  margin: 0 0 2px;
+}
+
+.empresa-card-locs {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* ── Ações do card (canto inferior direito) ── */
+.empresa-card-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  padding-top: 4px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.acao-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  background: #f1f5f9;
+  color: #64748b;
+  transition: background 0.12s, color 0.12s;
+}
+
+.acao-editar:hover {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.acao-excluir:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}

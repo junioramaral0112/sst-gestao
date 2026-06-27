@@ -31,30 +31,61 @@ async function loadEmpresas() {
   const emps = await res.json();
   window._empresas = emps;
   document.getElementById('user-info').textContent = `👤 ${usuario?.nome || ''}`;
+
   document.getElementById('empresas-grid').innerHTML = `
-    <div class="flex items-center justify-between mb-5">
-      <h2 class="text-xl font-bold text-gray-800">Selecione uma Empresa</h2>
-      <button onclick="modalEmpresa()" class="flex items-center gap-1 px-4 py-2.5 rounded-lg text-sm font-bold transition" style="background:#111;color:#fff">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/></svg>
-        Nova Empresa
-      </button>
-    </div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">${emps.map(e => `
-      <div class="bg-white rounded-xl border p-5 hover:shadow-lg transition group relative">
-        <div onclick="selEmpresa(${e.id},'${e.nome_fantasia.replace(/'/g,"\\'")}')" class="cursor-pointer">
-          <h3 class="font-bold text-gray-800 pr-12">🏢 ${e.nome_fantasia}</h3>
-          <p class="text-xs text-gray-500 font-mono mt-1">CNPJ: ${e.cnpj}</p>
-          <p class="text-xs text-gray-400 mt-2">📍 ${e.localidades.length} localidade(s)</p>
-        </div>
-        <div class="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition">
-          <button onclick="event.stopPropagation();editarEmpresa(${e.id})" title="Editar" class="p-1.5 rounded-lg hover:bg-blue-50 text-blue-600 transition">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-          </button>
-          <button onclick="event.stopPropagation();excluirEmpresa(${e.id},'${e.nome_fantasia.replace(/'/g,"\\'")}')" title="Excluir" class="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+    <div class="empresas-layout">
+      <!-- COLUNA ESQUERDA — Painel de Controle -->
+      <aside class="empresas-sidebar">
+        <div class="sidebar-card">
+          <div class="sidebar-icon">⚙️</div>
+          <h2 class="sidebar-title">Painel do Administrador</h2>
+          <p class="sidebar-sub">Gerencie suas empresas</p>
+          <button onclick="modalEmpresa()" class="btn-nova-empresa">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+            Nova Empresa
           </button>
         </div>
-      </div>`).join('')}</div>`;
+        <div class="sidebar-stats">
+          <div class="stat-item">
+            <span class="stat-num">${emps.length}</span>
+            <span class="stat-label">Empresas</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num">${emps.reduce((s,e) => s + (e.localidades?.length||0), 0)}</span>
+            <span class="stat-label">Localidades</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- COLUNA DIREITA — Listagem -->
+      <main class="empresas-main">
+        <div class="empresas-main-header">
+          <h2 class="empresas-main-title">Selecione uma Empresa</h2>
+          <span class="empresas-main-count">${emps.length} disponíveis</span>
+        </div>
+        <div class="empresas-grid-cards">${emps.map(e => `
+          <div class="empresa-card" onclick="selEmpresa(${e.id},'${e.nome_fantasia.replace(/'/g,"\\'")}')">
+            <div class="empresa-card-body">
+              <div class="empresa-card-icon">🏢</div>
+              <div class="empresa-card-info">
+                <h3 class="empresa-card-nome">${e.nome_fantasia}</h3>
+                <p class="empresa-card-cnpj">CNPJ: ${e.cnpj}</p>
+                <p class="empresa-card-locs">📍 ${e.localidades.length} localidade(s)</p>
+              </div>
+            </div>
+            <div class="empresa-card-actions">
+              <button onclick="event.stopPropagation();editarEmpresa(${e.id})" class="acao-btn acao-editar" title="Editar empresa">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                Editar
+              </button>
+              <button onclick="event.stopPropagation();excluirEmpresa(${e.id},'${e.nome_fantasia.replace(/'/g,"\\'")}')" class="acao-btn acao-excluir" title="Excluir empresa">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                Excluir
+              </button>
+            </div>
+          </div>`).join('')}</div>
+      </main>
+    </div>`;
   show('tela-empresas');
 }
 
